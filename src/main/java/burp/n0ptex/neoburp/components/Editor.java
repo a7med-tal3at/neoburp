@@ -18,13 +18,11 @@ import javax.swing.undo.UndoManager;
 import burp.api.montoya.MontoyaApi;
 import burp.n0ptex.neoburp.AutoCompletion.AutoCompletion;
 import burp.n0ptex.neoburp.helpers.BodyFormatter;
-import burp.n0ptex.neoburp.helpers.SimpleDocumentListener;
 
 public class Editor extends Component {
 
     private final JPanel editorPanel;
     private final JTextArea textArea;
-    private final LineNumbers lineNumbers;
     private final JScrollPane scrollPane;
     private final SuggestionsPopup suggestionsPopup;
     private final UndoManager undoManager;
@@ -34,18 +32,20 @@ public class Editor extends Component {
         this.api = api;
         this.editorPanel = new JPanel(new BorderLayout());
         this.textArea = new JTextArea();
-        this.lineNumbers = new LineNumbers(textArea, api);
         this.scrollPane = new JScrollPane(textArea);
-        this.suggestionsPopup = new SuggestionsPopup(textArea, new AutoCompletion());
+        this.suggestionsPopup = new SuggestionsPopup(textArea, new AutoCompletion(), api);
         this.undoManager = new UndoManager();
+
+        NumberLine numberLine = new NumberLine(this.textArea, api);
+        scrollPane.setRowHeaderView(numberLine);
 
         applyLookAndFeelTheme();
         configureTextArea();
         configureUndoManager();
         configureContextMenu();
-        configureDocumentListener();
 
-        scrollPane.setRowHeaderView(lineNumbers.getLineNumberArea());
+        this.textArea.setLineWrap(true);
+        this.textArea.setWrapStyleWord(false);
         editorPanel.add(scrollPane, BorderLayout.CENTER);
     }
 
@@ -87,15 +87,10 @@ public class Editor extends Component {
         Color backgroundColor = UIManager.getColor("TextArea.background");
         Color foregroundColor = UIManager.getColor("TextArea.foreground");
         Color caretColor = UIManager.getColor("TextArea.caretForeground");
-        Color lineNumberBackgroundColor = UIManager.getColor("Panel.background");
-        Color lineNumberForegroundColor = UIManager.getColor("Label.foreground");
 
         textArea.setBackground(backgroundColor != null ? backgroundColor : Color.WHITE);
         textArea.setForeground(foregroundColor != null ? foregroundColor : Color.BLACK);
         textArea.setCaretColor(caretColor != null ? caretColor : Color.BLACK);
-
-        lineNumbers.setBackground(lineNumberBackgroundColor != null ? lineNumberBackgroundColor : Color.LIGHT_GRAY);
-        lineNumbers.setForeground(lineNumberForegroundColor != null ? lineNumberForegroundColor : Color.DARK_GRAY);
 
         suggestionsPopup.applyLookAndFeelTheme();
     }
@@ -160,15 +155,6 @@ public class Editor extends Component {
                     JPopupMenu popupMenu = ContextMenu.create(textArea);
                     popupMenu.show(textArea, e.getX(), e.getY());
                 }
-            }
-        });
-    }
-
-    private void configureDocumentListener() {
-        textArea.getDocument().addDocumentListener(new SimpleDocumentListener() {
-            @Override
-            public void update() {
-                lineNumbers.updateLineNumbers();
             }
         });
     }

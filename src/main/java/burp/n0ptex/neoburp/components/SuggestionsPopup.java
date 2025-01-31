@@ -9,6 +9,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.JTextArea;
 import javax.swing.UIManager;
 
+import burp.api.montoya.MontoyaApi;
 import burp.n0ptex.neoburp.AutoCompletion.AutoCompletion;
 import burp.n0ptex.neoburp.AutoCompletion.AutoCompletionWords;
 
@@ -18,12 +19,14 @@ class SuggestionsPopup {
     private final JTextArea textArea;
     private final AutoCompletion autoCompletion;
     private int selectedIndex = -1;
+    private MontoyaApi api;
 
-    public SuggestionsPopup(JTextArea textArea, AutoCompletion autoCompletion) {
+    public SuggestionsPopup(JTextArea textArea, AutoCompletion autoCompletion, MontoyaApi api) {
         this.textArea = textArea;
         this.autoCompletion = autoCompletion;
         this.popupMenu = new JPopupMenu();
         popupMenu.setFocusable(false);
+        this.api = api;
     }
 
     public void showSuggestions() {
@@ -31,11 +34,11 @@ class SuggestionsPopup {
         popupMenu.removeAll();
         String text = textArea.getText();
         int caretPosition = textArea.getCaretPosition();
-        int caretLine = getCaretLine(caretPosition);
-
+        String currentLineContent = getCurrentLineContent();
         List<String> words = new AutoCompletionWords().getWords();
 
-        autoCompletion.updateAutoCompletionWords(caretLine == 1 ? words.subList(0, 9) : words);
+        autoCompletion.updateAutoCompletionWords(
+                currentLineContent.matches(".*HTTP/[12](?:\\.1)?.*") ? words.subList(0, 9) : words);
 
         String prefix = getWordPrefix(text, caretPosition);
 
@@ -168,13 +171,18 @@ class SuggestionsPopup {
         }
     }
 
-    private int getCaretLine(int caretPosition) {
+    private String getCurrentLineContent() {
         try {
-            int line = textArea.getLineOfOffset(caretPosition);
-            return line + 1;
+            int caretPos = textArea.getCaretPosition();
+            int lineNum = textArea.getLineOfOffset(caretPos);
+            int lineStart = textArea.getLineStartOffset(lineNum);
+            int lineEnd = textArea.getLineEndOffset(lineNum);
+            String content = textArea.getText(lineStart, lineEnd - lineStart);
+
+            return content.replaceAll("\\r\\n|\\r|\\n", "");
         } catch (Exception e) {
-            e.printStackTrace();
-            return 1;
+            api.logging().logToError("Error getting current line content: " + e.getMessage());
+            return "";
         }
     }
 }

@@ -1,5 +1,4 @@
 /media/n0ptex/a7med/dev/Burp/neoburp/src/main/java/burp/n0ptex/neoburp/components/ContextMenu.java
-/media/n0ptex/a7med/dev/Burp/neoburp/src/main/java/burp/n0ptex/neoburp/components/LineNumbers.java
 /media/n0ptex/a7med/dev/Burp/neoburp/src/main/java/burp/n0ptex/neoburp/NeoBurpHttpRequestEditor.java
 /media/n0ptex/a7med/dev/Burp/neoburp/src/main/java/burp/n0ptex/neoburp/components/Editor.java
 /media/n0ptex/a7med/dev/Burp/neoburp/src/main/java/burp/n0ptex/neoburp/AutoCompletion/AutoCompletion.java
@@ -8,4 +7,5 @@
 /media/n0ptex/a7med/dev/Burp/neoburp/src/main/java/burp/n0ptex/neoburp/helpers/SimpleDocumentListener.java
 /media/n0ptex/a7med/dev/Burp/neoburp/src/main/java/burp/n0ptex/neoburp/NeoBurp.java
 /media/n0ptex/a7med/dev/Burp/neoburp/src/main/java/burp/n0ptex/neoburp/NeoBurpHttpRequestEditorProvider.java
+/media/n0ptex/a7med/dev/Burp/neoburp/src/main/java/burp/n0ptex/neoburp/components/NumberLine.java
 /media/n0ptex/a7med/dev/Burp/neoburp/src/main/java/burp/n0ptex/neoburp/components/SuggestionsPopup.java
