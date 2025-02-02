@@ -11,46 +11,60 @@ import java.awt.event.MouseEvent;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
+import javax.swing.JTextPane;
 import javax.swing.UIManager;
 import javax.swing.undo.UndoManager;
+import javax.swing.text.StyledDocument;
 
 import burp.api.montoya.MontoyaApi;
 import burp.n0ptex.neoburp.AutoCompletion.AutoCompletion;
 import burp.n0ptex.neoburp.helpers.BodyFormatter;
+import burp.n0ptex.neoburp.helpers.SimpleDocumentListener;
+import javax.swing.SwingUtilities;
 
 public class Editor extends Component {
 
     private final JPanel editorPanel;
-    private final JTextArea textArea;
+    private final JTextPane textArea;
     private final JScrollPane scrollPane;
     private final SuggestionsPopup suggestionsPopup;
     private final UndoManager undoManager;
     private final MontoyaApi api;
+    private HttpSyntaxHighlighter syntaxHighlighter;
 
     public Editor(MontoyaApi api) {
         this.api = api;
         this.editorPanel = new JPanel(new BorderLayout());
-        this.textArea = new JTextArea();
+        this.textArea = new JTextPane();
         this.scrollPane = new JScrollPane(textArea);
         this.suggestionsPopup = new SuggestionsPopup(textArea, new AutoCompletion(), api);
         this.undoManager = new UndoManager();
+        this.syntaxHighlighter = new HttpSyntaxHighlighter(isUsingDarkTheme());
 
         NumberLine numberLine = new NumberLine(this.textArea, api);
         scrollPane.setRowHeaderView(numberLine);
+
+        // Add theme change listener
+        UIManager.addPropertyChangeListener(evt -> {
+            if ("lookAndFeel".equals(evt.getPropertyName())) {
+                SwingUtilities.invokeLater(this::applyLookAndFeelTheme);
+            }
+        });
 
         applyLookAndFeelTheme();
         configureTextArea();
         configureUndoManager();
         configureContextMenu();
 
-        this.textArea.setLineWrap(true);
-        this.textArea.setWrapStyleWord(false);
+        this.textArea.setEditorKit(new javax.swing.text.StyledEditorKit());
         editorPanel.add(scrollPane, BorderLayout.CENTER);
     }
 
     public void setTextAreaContent(String str) {
-        textArea.setText(formatRequestBody(str));
+        api.logging().logToError("Setting text...");
+        String formattedText = formatRequestBody(str);
+        textArea.setText(formattedText);
+        syntaxHighlighter.highlight((StyledDocument) textArea.getDocument());
         textArea.setCaretPosition(0);
         scrollPane.getVerticalScrollBar().setValue(0);
     }
@@ -77,12 +91,7 @@ public class Editor extends Component {
         return editorPanel;
     }
 
-    public void refreshTheme() {
-        applyLookAndFeelTheme();
-    }
-
     private void applyLookAndFeelTheme() {
-
         Color backgroundColor = UIManager.getColor("TextArea.background");
         Color foregroundColor = UIManager.getColor("TextArea.foreground");
         Color caretColor = UIManager.getColor("TextArea.caretForeground");
@@ -91,19 +100,43 @@ public class Editor extends Component {
         textArea.setForeground(foregroundColor != null ? foregroundColor : Color.BLACK);
         textArea.setCaretColor(caretColor != null ? caretColor : Color.BLACK);
 
+        syntaxHighlighter = new HttpSyntaxHighlighter(isUsingDarkTheme());
+        syntaxHighlighter.highlight((StyledDocument) textArea.getDocument());
+
         suggestionsPopup.applyLookAndFeelTheme();
     }
 
     private void configureTextArea() {
         textArea.setFont(api.userInterface().currentEditorFont());
+
+        textArea.getDocument().addDocumentListener(new SimpleDocumentListener() {
+            @Override
+            public void update() {
+                syntaxHighlighter.highlight((StyledDocument) textArea.getDocument());
+            }
+        });
+
         textArea.addKeyListener(new KeyAdapter() {
             @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.isControlDown()) {
+                    if (e.getKeyCode() == KeyEvent.VK_Z) {
+                        undo();
+                        e.consume();
+                    } else if (e.getKeyCode() == KeyEvent.VK_Y) {
+                        redo();
+                        e.consume();
+                    }
+                }
+
+                if (suggestionsPopup.getVisibility()) {
+                    suggestionsPopup.handleKeyEvent(e);
+                }
+            }
+
+            @Override
             public void keyReleased(KeyEvent e) {
-                if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_Z) {
-                    undo();
-                } else if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_Y) {
-                    redo();
-                } else if (Character.isLetterOrDigit(e.getKeyChar()) || e.getKeyChar() == '.') {
+                if (Character.isLetterOrDigit(e.getKeyChar()) || e.getKeyChar() == '.') {
                     suggestionsPopup.showSuggestions();
                 } else if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
                     suggestionsPopup.hide();
@@ -112,25 +145,6 @@ public class Editor extends Component {
                 }
             }
         });
-
-        textArea.addKeyListener(new java.awt.event.KeyAdapter() {
-            @Override
-            public void keyPressed(java.awt.event.KeyEvent e) {
-                if (suggestionsPopup.getVisibility()) {
-                    suggestionsPopup.handleKeyEvent(e);
-                }
-            }
-
-            @Override
-            public void keyReleased(java.awt.event.KeyEvent e) {
-                if (Character.isLetterOrDigit(e.getKeyChar()) || e.getKeyChar() == '.') {
-                    suggestionsPopup.showSuggestions();
-                } else if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ESCAPE) {
-                    suggestionsPopup.hide();
-                }
-            }
-        });
-
     }
 
     private void configureUndoManager() {
@@ -169,4 +183,13 @@ public class Editor extends Component {
             undoManager.redo();
         }
     }
+
+    private boolean isUsingDarkTheme() {
+        Color bg = UIManager.getColor("TextArea.background");
+        if (bg == null)
+            return false;
+        double luminance = (0.299 * bg.getRed() + 0.587 * bg.getGreen() + 0.114 * bg.getBlue()) / 255;
+        return luminance < 0.5;
+    }
+
 }

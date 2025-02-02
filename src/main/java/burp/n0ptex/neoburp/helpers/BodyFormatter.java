@@ -12,14 +12,7 @@ public class BodyFormatter {
             JsonElement jsonElement = gson.fromJson(jsonString, JsonElement.class);
             return gson.toJson(jsonElement);
         } catch (Exception e) {
-            // If parsing fails, return the original string
             return jsonString;
-        }
-    }
-
-    private static void addIndentation(StringBuilder builder, int level) {
-        for (int i = 0; i < level; i++) {
-            builder.append("  ");
         }
     }
 

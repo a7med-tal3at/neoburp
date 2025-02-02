@@ -1,13 +1,17 @@
 package burp.n0ptex.neoburp.components;
 
 import java.awt.Rectangle;
+import java.awt.Color;
 import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
-import javax.swing.JTextArea;
+import javax.swing.text.JTextComponent;
+import javax.swing.text.Element;
 import javax.swing.UIManager;
+import javax.swing.text.StyledDocument;
+import javax.swing.JTextPane;
 
 import burp.api.montoya.MontoyaApi;
 import burp.n0ptex.neoburp.AutoCompletion.AutoCompletion;
@@ -16,13 +20,13 @@ import burp.n0ptex.neoburp.AutoCompletion.AutoCompletionWords;
 class SuggestionsPopup {
 
     private final JPopupMenu popupMenu;
-    private final JTextArea textArea;
+    private final JTextComponent textArea;
     private final AutoCompletion autoCompletion;
     private int selectedIndex = -1;
     private MontoyaApi api;
 
-    public SuggestionsPopup(JTextArea textArea, AutoCompletion autoCompletion, MontoyaApi api) {
-        this.textArea = textArea;
+    public SuggestionsPopup(JTextComponent textComponent, AutoCompletion autoCompletion, MontoyaApi api) {
+        this.textArea = textComponent;
         this.autoCompletion = autoCompletion;
         this.popupMenu = new JPopupMenu();
         popupMenu.setFocusable(false);
@@ -130,8 +134,31 @@ class SuggestionsPopup {
         item.setBackground(UIManager.getColor("MenuItem.background"));
         item.setForeground(UIManager.getColor("MenuItem.foreground"));
         item.setOpaque(true);
-        item.addActionListener(e -> replaceWordWithSuggestion(prefix, suggestion));
+        item.addActionListener(e -> {
+            try {
+                int caretPos = textArea.getCaretPosition();
+                int prefixStart = caretPos - prefix.length();
+                textArea.getDocument().remove(prefixStart, prefix.length());
+                textArea.getDocument().insertString(prefixStart, suggestion, null);
+                textArea.setCaretPosition(prefixStart + suggestion.length());
+                if (textArea instanceof JTextPane) {
+                    HttpSyntaxHighlighter highlighter = new HttpSyntaxHighlighter(isUsingDarkTheme());
+                    highlighter.highlight((StyledDocument) textArea.getDocument());
+                }
+                hide();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
         return item;
+    }
+
+    private boolean isUsingDarkTheme() {
+        Color bg = UIManager.getColor("TextArea.background");
+        if (bg == null)
+            return false;
+        double luminance = (0.299 * bg.getRed() + 0.587 * bg.getGreen() + 0.114 * bg.getBlue()) / 255;
+        return luminance < 0.5;
     }
 
     private String getWordPrefix(String text, int caretPosition) {
@@ -144,18 +171,6 @@ class SuggestionsPopup {
         }
 
         return prefix.toString();
-    }
-
-    private void replaceWordWithSuggestion(String prefix, String suggestion) {
-        try {
-            String modSug = suggestion.startsWith("%") ? suggestion.substring(suggestion.indexOf(":") + 1) : suggestion;
-
-            int caretPosition = textArea.getCaretPosition();
-            textArea.getDocument().remove(caretPosition - prefix.length(), prefix.length());
-            textArea.getDocument().insertString(caretPosition - prefix.length(), modSug, null);
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
     }
 
     private void updateSelection() {
@@ -174,9 +189,11 @@ class SuggestionsPopup {
     private String getCurrentLineContent() {
         try {
             int caretPos = textArea.getCaretPosition();
-            int lineNum = textArea.getLineOfOffset(caretPos);
-            int lineStart = textArea.getLineStartOffset(lineNum);
-            int lineEnd = textArea.getLineEndOffset(lineNum);
+            Element root = textArea.getDocument().getDefaultRootElement();
+            int lineNum = root.getElementIndex(caretPos);
+            Element line = root.getElement(lineNum);
+            int lineStart = line.getStartOffset();
+            int lineEnd = line.getEndOffset();
             String content = textArea.getText(lineStart, lineEnd - lineStart);
 
             return content.replaceAll("\\r\\n|\\r|\\n", "");

@@ -77,7 +77,8 @@ public class AutoCompletion {
         }
 
         for (TrieNode child : root.children.values()) {
-            if (patternIndex < pattern.length() && Character.toLowerCase(child.c) == Character.toLowerCase(pattern.charAt(patternIndex))) {
+            if (patternIndex < pattern.length()
+                    && Character.toLowerCase(child.c) == Character.toLowerCase(pattern.charAt(patternIndex))) {
                 suggestHelper(child, list, curr.append(child.c), pattern, patternIndex + 1);
             } else {
                 suggestHelper(child, list, curr.append(child.c), pattern, patternIndex);

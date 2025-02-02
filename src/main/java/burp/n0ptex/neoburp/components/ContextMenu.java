@@ -2,21 +2,21 @@ package burp.n0ptex.neoburp.components;
 
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
-import javax.swing.JTextArea;
+import javax.swing.JTextPane;
 
 public class ContextMenu {
 
-    public static JPopupMenu create(JTextArea textArea) {
+    public static JPopupMenu create(JTextPane textPane) {
         JPopupMenu popupMenu = new JPopupMenu();
 
         JMenuItem copyItem = new JMenuItem("Copy");
-        copyItem.addActionListener(evt -> textArea.copy());
+        copyItem.addActionListener(evt -> textPane.copy());
 
         JMenuItem pasteItem = new JMenuItem("Paste");
-        pasteItem.addActionListener(evt -> textArea.paste());
+        pasteItem.addActionListener(evt -> textPane.paste());
 
         JMenuItem cutItem = new JMenuItem("Cut");
-        cutItem.addActionListener(evt -> textArea.cut());
+        cutItem.addActionListener(evt -> textPane.cut());
 
         popupMenu.add(copyItem);
         popupMenu.add(pasteItem);
