@@ -88,17 +88,15 @@ public class Editor extends Component {
     }
 
     private String formatRequestBody(String rawRequest) {
-        String[] parts = rawRequest.split("\r\n\r\n", 2);
-        String headers = parts[0];
-        String body = parts[1];
-
         try {
+            String[] parts = rawRequest.split("\r\n\r\n", 2);
+            String headers = parts[0];
+            String body = parts[1];
             body = BodyFormatter.formatJson(body);
+            return headers + "\r\n\r\n" + body;
         } catch (Exception e) {
-            body = parts[1];
+            return rawRequest;
         }
-
-        return headers + "\r\n\r\n" + body;
     }
 
     public Component ui() {
