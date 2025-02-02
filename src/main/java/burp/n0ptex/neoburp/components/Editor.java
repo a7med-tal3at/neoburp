@@ -51,6 +51,8 @@ public class Editor extends Component {
 
     public void setTextAreaContent(String str) {
         textArea.setText(formatRequestBody(str));
+        textArea.setCaretPosition(0);
+        scrollPane.getVerticalScrollBar().setValue(0);
     }
 
     public String getTextAreaContent() {
@@ -59,9 +61,6 @@ public class Editor extends Component {
 
     private String formatRequestBody(String rawRequest) {
         String[] parts = rawRequest.split("\r\n\r\n", 2);
-
-        api.logging().logToOutput(parts[1]);
-
         String headers = parts[0];
         String body = parts[1];
 
