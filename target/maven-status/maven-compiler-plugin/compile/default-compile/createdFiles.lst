@@ -1,4 +1,6 @@
+burp/n0ptex/neoburp/components/Editor$WrapColumnFactory.class
 burp/n0ptex/neoburp/components/HttpSyntaxHighlighter.class
+burp/n0ptex/neoburp/components/Editor$WrapLabelView.class
 burp/n0ptex/neoburp/components/NumberLine$1.class
 burp/n0ptex/neoburp/NeoBurpHttpRequestEditor.class
 burp/n0ptex/neoburp/AutoCompletion/AutoCompletion$TrieNode.class
@@ -14,4 +16,5 @@ burp/n0ptex/neoburp/components/NumberLine.class
 burp/n0ptex/neoburp/NeoBurpHttpRequestEditorProvider.class
 burp/n0ptex/neoburp/NeoBurp.class
 burp/n0ptex/neoburp/AutoCompletion/AutoCompletion.class
+burp/n0ptex/neoburp/components/Editor$WrapEditorKit.class
 burp/n0ptex/neoburp/helpers/SimpleDocumentListener.class

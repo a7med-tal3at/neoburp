@@ -20,13 +20,13 @@ import burp.n0ptex.neoburp.AutoCompletion.AutoCompletionWords;
 class SuggestionsPopup {
 
     private final JPopupMenu popupMenu;
-    private final JTextComponent textArea;
+    private final JTextComponent textPane;
     private final AutoCompletion autoCompletion;
     private int selectedIndex = -1;
     private MontoyaApi api;
 
     public SuggestionsPopup(JTextComponent textComponent, AutoCompletion autoCompletion, MontoyaApi api) {
-        this.textArea = textComponent;
+        this.textPane = textComponent;
         this.autoCompletion = autoCompletion;
         this.popupMenu = new JPopupMenu();
         popupMenu.setFocusable(false);
@@ -36,8 +36,8 @@ class SuggestionsPopup {
     public void showSuggestions() {
         applyLookAndFeelTheme();
         popupMenu.removeAll();
-        String text = textArea.getText();
-        int caretPosition = textArea.getCaretPosition();
+        String text = textPane.getText();
+        int caretPosition = textPane.getCaretPosition();
         String currentLineContent = getCurrentLineContent();
         List<String> words = new AutoCompletionWords().getWords();
 
@@ -65,8 +65,8 @@ class SuggestionsPopup {
         }
 
         try {
-            Rectangle caretRect = textArea.modelToView2D(caretPosition).getBounds();
-            popupMenu.show(textArea, caretRect.x, caretRect.y + caretRect.height);
+            Rectangle caretRect = textPane.modelToView2D(caretPosition).getBounds();
+            popupMenu.show(textPane, caretRect.x, caretRect.y + caretRect.height);
             updateSelection();
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -130,20 +130,20 @@ class SuggestionsPopup {
 
     private JMenuItem createSuggestionItem(String prefix, String suggestion) {
         JMenuItem item = new JMenuItem(suggestion);
-        item.setFont(textArea.getFont());
+        item.setFont(textPane.getFont());
         item.setBackground(UIManager.getColor("MenuItem.background"));
         item.setForeground(UIManager.getColor("MenuItem.foreground"));
         item.setOpaque(true);
         item.addActionListener(e -> {
             try {
-                int caretPos = textArea.getCaretPosition();
+                int caretPos = textPane.getCaretPosition();
                 int prefixStart = caretPos - prefix.length();
-                textArea.getDocument().remove(prefixStart, prefix.length());
-                textArea.getDocument().insertString(prefixStart, suggestion, null);
-                textArea.setCaretPosition(prefixStart + suggestion.length());
-                if (textArea instanceof JTextPane) {
+                textPane.getDocument().remove(prefixStart, prefix.length());
+                textPane.getDocument().insertString(prefixStart, suggestion, null);
+                textPane.setCaretPosition(prefixStart + suggestion.length());
+                if (textPane instanceof JTextPane) {
                     HttpSyntaxHighlighter highlighter = new HttpSyntaxHighlighter(isUsingDarkTheme());
-                    highlighter.highlight((StyledDocument) textArea.getDocument());
+                    highlighter.highlight((StyledDocument) textPane.getDocument());
                 }
                 hide();
             } catch (Exception ex) {
@@ -154,7 +154,7 @@ class SuggestionsPopup {
     }
 
     private boolean isUsingDarkTheme() {
-        Color bg = UIManager.getColor("TextArea.background");
+        Color bg = UIManager.getColor("TextPane.background");
         if (bg == null)
             return false;
         double luminance = (0.299 * bg.getRed() + 0.587 * bg.getGreen() + 0.114 * bg.getBlue()) / 255;
@@ -188,13 +188,13 @@ class SuggestionsPopup {
 
     private String getCurrentLineContent() {
         try {
-            int caretPos = textArea.getCaretPosition();
-            Element root = textArea.getDocument().getDefaultRootElement();
+            int caretPos = textPane.getCaretPosition();
+            Element root = textPane.getDocument().getDefaultRootElement();
             int lineNum = root.getElementIndex(caretPos);
             Element line = root.getElement(lineNum);
             int lineStart = line.getStartOffset();
             int lineEnd = line.getEndOffset();
-            String content = textArea.getText(lineStart, lineEnd - lineStart);
+            String content = textPane.getText(lineStart, lineEnd - lineStart);
 
             return content.replaceAll("\\r\\n|\\r|\\n", "");
         } catch (Exception e) {

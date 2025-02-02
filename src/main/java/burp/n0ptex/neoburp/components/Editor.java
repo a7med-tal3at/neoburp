@@ -15,6 +15,18 @@ import javax.swing.JTextPane;
 import javax.swing.UIManager;
 import javax.swing.undo.UndoManager;
 import javax.swing.text.StyledDocument;
+import javax.swing.JEditorPane;
+import javax.swing.text.StyledEditorKit;
+import javax.swing.text.ViewFactory;
+import javax.swing.text.Element;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.LabelView;
+import javax.swing.text.View;
+import javax.swing.text.ParagraphView;
+import javax.swing.text.BoxView;
+import javax.swing.text.ComponentView;
+import javax.swing.text.IconView;
 
 import burp.api.montoya.MontoyaApi;
 import burp.n0ptex.neoburp.AutoCompletion.AutoCompletion;
@@ -25,7 +37,7 @@ import javax.swing.SwingUtilities;
 public class Editor extends Component {
 
     private final JPanel editorPanel;
-    private final JTextPane textArea;
+    private final JTextPane textPane;
     private final JScrollPane scrollPane;
     private final SuggestionsPopup suggestionsPopup;
     private final UndoManager undoManager;
@@ -35,13 +47,13 @@ public class Editor extends Component {
     public Editor(MontoyaApi api) {
         this.api = api;
         this.editorPanel = new JPanel(new BorderLayout());
-        this.textArea = new JTextPane();
-        this.scrollPane = new JScrollPane(textArea);
-        this.suggestionsPopup = new SuggestionsPopup(textArea, new AutoCompletion(), api);
+        this.textPane = new JTextPane();
+        this.scrollPane = new JScrollPane(textPane);
+        this.suggestionsPopup = new SuggestionsPopup(textPane, new AutoCompletion(), api);
         this.undoManager = new UndoManager();
         this.syntaxHighlighter = new HttpSyntaxHighlighter(isUsingDarkTheme());
 
-        NumberLine numberLine = new NumberLine(this.textArea, api);
+        NumberLine numberLine = new NumberLine(this.textPane, api);
         scrollPane.setRowHeaderView(numberLine);
 
         // Add theme change listener
@@ -56,21 +68,23 @@ public class Editor extends Component {
         configureUndoManager();
         configureContextMenu();
 
-        this.textArea.setEditorKit(new javax.swing.text.StyledEditorKit());
+        // Configure word wrap
+        textPane.setEditorKit(new WrapEditorKit());
+        textPane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true);
         editorPanel.add(scrollPane, BorderLayout.CENTER);
     }
 
     public void setTextAreaContent(String str) {
-        api.logging().logToError("Setting text...");
+        api.logging().logToOutput("Setting text...");
         String formattedText = formatRequestBody(str);
-        textArea.setText(formattedText);
-        syntaxHighlighter.highlight((StyledDocument) textArea.getDocument());
-        textArea.setCaretPosition(0);
+        textPane.setText(formattedText);
+        syntaxHighlighter.highlight((StyledDocument) textPane.getDocument());
+        textPane.setCaretPosition(0);
         scrollPane.getVerticalScrollBar().setValue(0);
     }
 
     public String getTextAreaContent() {
-        return textArea.getText();
+        return textPane.getText();
     }
 
     private String formatRequestBody(String rawRequest) {
@@ -92,31 +106,30 @@ public class Editor extends Component {
     }
 
     private void applyLookAndFeelTheme() {
-        Color backgroundColor = UIManager.getColor("TextArea.background");
-        Color foregroundColor = UIManager.getColor("TextArea.foreground");
-        Color caretColor = UIManager.getColor("TextArea.caretForeground");
+        Color backgroundColor = UIManager.getColor("TextPane.background");
+        Color foregroundColor = UIManager.getColor("TextPane.foreground");
+        Color caretColor = UIManager.getColor("TextPane.caretForeground");
 
-        textArea.setBackground(backgroundColor != null ? backgroundColor : Color.WHITE);
-        textArea.setForeground(foregroundColor != null ? foregroundColor : Color.BLACK);
-        textArea.setCaretColor(caretColor != null ? caretColor : Color.BLACK);
+        textPane.setBackground(backgroundColor != null ? backgroundColor : Color.WHITE);
+        textPane.setForeground(foregroundColor != null ? foregroundColor : Color.BLACK);
+        textPane.setCaretColor(caretColor != null ? caretColor : Color.BLACK);
 
         syntaxHighlighter = new HttpSyntaxHighlighter(isUsingDarkTheme());
-        syntaxHighlighter.highlight((StyledDocument) textArea.getDocument());
+        syntaxHighlighter.highlight((StyledDocument) textPane.getDocument());
 
         suggestionsPopup.applyLookAndFeelTheme();
     }
 
     private void configureTextArea() {
-        textArea.setFont(api.userInterface().currentEditorFont());
-
-        textArea.getDocument().addDocumentListener(new SimpleDocumentListener() {
+        textPane.setFont(api.userInterface().currentEditorFont());
+        textPane.getDocument().addDocumentListener(new SimpleDocumentListener() {
             @Override
             public void update() {
-                syntaxHighlighter.highlight((StyledDocument) textArea.getDocument());
+                syntaxHighlighter.highlight((StyledDocument) textPane.getDocument());
             }
         });
 
-        textArea.addKeyListener(new KeyAdapter() {
+        textPane.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
                 if (e.isControlDown()) {
@@ -148,11 +161,11 @@ public class Editor extends Component {
     }
 
     private void configureUndoManager() {
-        textArea.getDocument().addUndoableEditListener(e -> undoManager.addEdit(e.getEdit()));
+        textPane.getDocument().addUndoableEditListener(e -> undoManager.addEdit(e.getEdit()));
     }
 
     private void configureContextMenu() {
-        textArea.addMouseListener(new MouseAdapter() {
+        textPane.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
                 showContextMenu(e);
@@ -165,8 +178,8 @@ public class Editor extends Component {
 
             private void showContextMenu(MouseEvent e) {
                 if (e.isPopupTrigger()) {
-                    JPopupMenu popupMenu = ContextMenu.create(textArea);
-                    popupMenu.show(textArea, e.getX(), e.getY());
+                    JPopupMenu popupMenu = ContextMenu.create(textPane);
+                    popupMenu.show(textPane, e.getX(), e.getY());
                 }
             }
         });
@@ -185,11 +198,59 @@ public class Editor extends Component {
     }
 
     private boolean isUsingDarkTheme() {
-        Color bg = UIManager.getColor("TextArea.background");
+        Color bg = UIManager.getColor("TextPane.background");
         if (bg == null)
             return false;
         double luminance = (0.299 * bg.getRed() + 0.587 * bg.getGreen() + 0.114 * bg.getBlue()) / 255;
         return luminance < 0.5;
+    }
+
+    private static class WrapEditorKit extends StyledEditorKit {
+        ViewFactory defaultFactory = new WrapColumnFactory();
+
+        @Override
+        public ViewFactory getViewFactory() {
+            return defaultFactory;
+        }
+    }
+
+    private static class WrapColumnFactory implements ViewFactory {
+        public View create(Element elem) {
+            String kind = elem.getName();
+            if (kind != null) {
+                switch (kind) {
+                    case AbstractDocument.ContentElementName:
+                        return new WrapLabelView(elem);
+                    case AbstractDocument.ParagraphElementName:
+                        return new ParagraphView(elem);
+                    case AbstractDocument.SectionElementName:
+                        return new BoxView(elem, View.Y_AXIS);
+                    case StyleConstants.ComponentElementName:
+                        return new ComponentView(elem);
+                    case StyleConstants.IconElementName:
+                        return new IconView(elem);
+                }
+            }
+            return new LabelView(elem);
+        }
+    }
+
+    private static class WrapLabelView extends LabelView {
+        public WrapLabelView(Element elem) {
+            super(elem);
+        }
+
+        @Override
+        public float getMinimumSpan(int axis) {
+            switch (axis) {
+                case View.X_AXIS:
+                    return 0;
+                case View.Y_AXIS:
+                    return super.getMinimumSpan(axis);
+                default:
+                    throw new IllegalArgumentException("Invalid axis: " + axis);
+            }
+        }
     }
 
 }
