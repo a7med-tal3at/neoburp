@@ -134,13 +134,40 @@ class SuggestionsPopup {
         item.setBackground(UIManager.getColor("MenuItem.background"));
         item.setForeground(UIManager.getColor("MenuItem.foreground"));
         item.setOpaque(true);
+
         item.addActionListener(e -> {
             try {
                 int caretPos = textPane.getCaretPosition();
                 int prefixStart = caretPos - prefix.length();
-                textPane.getDocument().remove(prefixStart, prefix.length());
-                textPane.getDocument().insertString(prefixStart, suggestion, null);
-                textPane.setCaretPosition(prefixStart + suggestion.length());
+
+                if (prefixStart < 0) {
+                    prefixStart = 0;
+                }
+
+                int wordStart = prefixStart;
+                int wordEnd = caretPos;
+
+                while (wordStart > 0) {
+                    char prevChar = textPane.getDocument().getText(wordStart - 1, 1).charAt(0);
+                    if (Character.isWhitespace(prevChar) || prevChar == ':' || prevChar == ',') {
+                        break;
+                    }
+                    wordStart--;
+                }
+
+                int docLength = textPane.getDocument().getLength();
+                while (wordEnd < docLength) {
+                    char nextChar = textPane.getDocument().getText(wordEnd, 1).charAt(0);
+                    if (Character.isWhitespace(nextChar) || nextChar == ':' || nextChar == ',') {
+                        break;
+                    }
+                    wordEnd++;
+                }
+
+                textPane.getDocument().remove(wordStart, wordEnd - wordStart);
+                textPane.getDocument().insertString(wordStart, suggestion, null);
+                textPane.setCaretPosition(wordStart + suggestion.length());
+
                 if (textPane instanceof JTextPane) {
                     HttpSyntaxHighlighter highlighter = new HttpSyntaxHighlighter(isUsingDarkTheme());
                     highlighter.highlight((StyledDocument) textPane.getDocument());
@@ -150,6 +177,7 @@ class SuggestionsPopup {
                 ex.printStackTrace();
             }
         });
+
         return item;
     }
 
@@ -176,13 +204,10 @@ class SuggestionsPopup {
     private void updateSelection() {
         for (int i = 0; i < popupMenu.getComponentCount(); i++) {
             JMenuItem item = (JMenuItem) popupMenu.getComponent(i);
-            if (i == selectedIndex) {
-                item.setBackground(UIManager.getColor("MenuItem.selectionBackground"));
-                item.setForeground(UIManager.getColor("MenuItem.selectionForeground"));
-            } else {
-                item.setBackground(UIManager.getColor("MenuItem.background"));
-                item.setForeground(UIManager.getColor("MenuItem.foreground"));
-            }
+            item.setBackground(
+                    UIManager.getColor(i == selectedIndex ? "MenuItem.selectionBackground" : "MenuItem.background"));
+            item.setForeground(
+                    UIManager.getColor(i == selectedIndex ? "MenuItem.selectionForeground" : "MenuItem.foreground"));
         }
     }
 
