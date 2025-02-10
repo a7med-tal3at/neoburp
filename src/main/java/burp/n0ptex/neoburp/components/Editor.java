@@ -18,6 +18,7 @@ import javax.swing.undo.UndoManager;
 import burp.api.montoya.MontoyaApi;
 import burp.n0ptex.neoburp.AutoCompletion.AutoCompletion;
 import burp.n0ptex.neoburp.helpers.BodyFormatter;
+import burp.n0ptex.neoburp.helpers.Enums.AutoCompletionType;
 
 public class Editor extends Component {
 
@@ -90,20 +91,39 @@ public class Editor extends Component {
         suggestionsPopup.applyLookAndFeelTheme();
     }
 
+    private String getCurrentLineContent() {
+        try {
+            int caretPos = textArea.getCaretPosition();
+            int lineNum = textArea.getLineOfOffset(caretPos);
+            int lineStart = textArea.getLineStartOffset(lineNum);
+            int lineEnd = textArea.getLineEndOffset(lineNum);
+            String content = textArea.getText(lineStart, lineEnd - lineStart);
+
+            return content.replaceAll("\\r\\n|\\r|\\n", "");
+        } catch (Exception e) {
+            api.logging().logToError("Error getting current line content: " + e.getMessage());
+            return "";
+        }
+    }
+
     private void configureTextArea() {
         textArea.setFont(api.userInterface().currentEditorFont());
         textArea.addKeyListener(new KeyAdapter() {
             @Override
             public void keyReleased(KeyEvent e) {
+                String currentText = textArea.getText();
+                String currentLine = getCurrentLineContent();
+                int currentCaretPosition = textArea.getCaretPosition();
+
                 if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_Z) {
                     undo();
                 } else if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_Y) {
                     redo();
-                } else if (e.isAltDown() && e.getKeyCode() == KeyEvent.VK_V) {
-                    suggestionsPopup.showSuggestions();
-                    return;
+
                 } else if (Character.isLetterOrDigit(e.getKeyChar()) || e.getKeyChar() == '.') {
-                    suggestionsPopup.showSuggestions();
+                    suggestionsPopup.showSuggestions(currentLine, currentText, currentCaretPosition,
+                            currentLine.matches(".*HTTP/[12](?:\\.1)?.*") ? AutoCompletionType.METHODS
+                                    : AutoCompletionType.HEADERS);
                 } else if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
                     suggestionsPopup.hide();
                 } else {

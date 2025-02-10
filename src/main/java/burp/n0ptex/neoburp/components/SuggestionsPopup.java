@@ -12,6 +12,7 @@ import javax.swing.UIManager;
 import burp.api.montoya.MontoyaApi;
 import burp.n0ptex.neoburp.AutoCompletion.AutoCompletion;
 import burp.n0ptex.neoburp.AutoCompletion.AutoCompletionWords;
+import burp.n0ptex.neoburp.helpers.Enums.AutoCompletionType;
 
 class SuggestionsPopup {
 
@@ -29,16 +30,12 @@ class SuggestionsPopup {
         this.api = api;
     }
 
-    public void showSuggestions() {
+    public void showSuggestions(String currentLineContent, String text, int caretPosition, AutoCompletionType type) {
         applyLookAndFeelTheme();
         popupMenu.removeAll();
-        String text = textArea.getText();
-        int caretPosition = textArea.getCaretPosition();
-        String currentLineContent = getCurrentLineContent();
-        List<String> words = new AutoCompletionWords().getWords();
 
-        autoCompletion.updateAutoCompletionWords(
-                currentLineContent.matches(".*HTTP/[12](?:\\.1)?.*") ? words.subList(0, 9) : words);
+        List<String> words = new AutoCompletionWords().getWords(type, currentLineContent);
+        autoCompletion.updateAutoCompletionWords(words);
 
         String prefix = getWordPrefix(text, caretPosition);
 
@@ -168,21 +165,6 @@ class SuggestionsPopup {
                 item.setBackground(UIManager.getColor("MenuItem.background"));
                 item.setForeground(UIManager.getColor("MenuItem.foreground"));
             }
-        }
-    }
-
-    private String getCurrentLineContent() {
-        try {
-            int caretPos = textArea.getCaretPosition();
-            int lineNum = textArea.getLineOfOffset(caretPos);
-            int lineStart = textArea.getLineStartOffset(lineNum);
-            int lineEnd = textArea.getLineEndOffset(lineNum);
-            String content = textArea.getText(lineStart, lineEnd - lineStart);
-
-            return content.replaceAll("\\r\\n|\\r|\\n", "");
-        } catch (Exception e) {
-            api.logging().logToError("Error getting current line content: " + e.getMessage());
-            return "";
         }
     }
 }
