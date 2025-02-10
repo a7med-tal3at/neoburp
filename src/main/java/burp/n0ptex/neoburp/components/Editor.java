@@ -77,10 +77,6 @@ public class Editor extends Component {
         return editorPanel;
     }
 
-    public void refreshTheme() {
-        applyLookAndFeelTheme();
-    }
-
     private void applyLookAndFeelTheme() {
 
         Color backgroundColor = UIManager.getColor("TextArea.background");
@@ -103,6 +99,9 @@ public class Editor extends Component {
                     undo();
                 } else if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_Y) {
                     redo();
+                } else if (e.isAltDown() && e.getKeyCode() == KeyEvent.VK_V) {
+                    suggestionsPopup.showSuggestions();
+                    return;
                 } else if (Character.isLetterOrDigit(e.getKeyChar()) || e.getKeyChar() == '.') {
                     suggestionsPopup.showSuggestions();
                 } else if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
@@ -113,24 +112,14 @@ public class Editor extends Component {
             }
         });
 
-        textArea.addKeyListener(new java.awt.event.KeyAdapter() {
+        textArea.addKeyListener(new KeyAdapter() {
             @Override
-            public void keyPressed(java.awt.event.KeyEvent e) {
+            public void keyPressed(KeyEvent e) {
                 if (suggestionsPopup.getVisibility()) {
                     suggestionsPopup.handleKeyEvent(e);
                 }
             }
-
-            @Override
-            public void keyReleased(java.awt.event.KeyEvent e) {
-                if (Character.isLetterOrDigit(e.getKeyChar()) || e.getKeyChar() == '.') {
-                    suggestionsPopup.showSuggestions();
-                } else if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ESCAPE) {
-                    suggestionsPopup.hide();
-                }
-            }
         });
-
     }
 
     private void configureUndoManager() {
